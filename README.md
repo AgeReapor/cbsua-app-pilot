@@ -40,7 +40,7 @@ Pilot makes it simple to run Frappe on your own servers. Use the Admin UI to man
 Run the installer as your normal user:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/frappe/pilot/develop/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/AgeReapor/cbsua-app-pilot/develop/install.sh | bash
 ```
 
 On a root-only VPS, run it as root; the installer creates a non-root bench user.
@@ -49,7 +49,7 @@ This installs the latest release (prebuilt admin UI, no build step). Contributor
 who want a source checkout that compiles the admin UI locally can pass `--dev`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/frappe/pilot/develop/install.sh | bash -s -- --dev
+curl -fsSL https://raw.githubusercontent.com/AgeReapor/cbsua-app-pilot/develop/install.sh | bash -s -- --dev
 ```
 
 ## Basic Usage
@@ -57,26 +57,26 @@ curl -fsSL https://raw.githubusercontent.com/frappe/pilot/develop/install.sh | b
 Create a bench and launch the setup wizard:
 
 ```bash
-pilot new dev-bench
-pilot -b dev-bench start
+pilot new cbsua-app-bench
+pilot -b cbsua-app-bench start
 ```
 
 The first `start` will print the url to access the admin wizard. The wizard asks for the Admin password, database settings, and Frappe source settings, then initializes the bench with live task progress.
 
 Common commands:
 
-| Command | Purpose |
-|---|---|
-| `pilot new <name>` | Create a bench and `bench.toml` |
-| `pilot ls` | List benches, status, production state, and Admin URL |
-| `pilot -b <name> init` | Initialize a bench from `bench.toml` |
-| `pilot -b <name> start` | Start development processes |
-| `pilot -b <name> stop` | Stop development processes |
-| `pilot -b <name> get-app <repo>` | Clone and install an app |
-| `pilot -b <name> new-site <site>` | Create a site |
-| `pilot -b <name> setup production` | Configure process manager, nginx, Admin domain, and optional TLS |
-| `pilot -b <name> restart` | Restart production processes |
-| `pilot -b <name> remove production` | Remove production deployment files and services |
+| Command                             | Purpose                                                          |
+| ----------------------------------- | ---------------------------------------------------------------- |
+| `pilot new <name>`                  | Create a bench and `bench.toml`                                  |
+| `pilot ls`                          | List benches, status, production state, and Admin URL            |
+| `pilot -b <name> init`              | Initialize a bench from `bench.toml`                             |
+| `pilot -b <name> start`             | Start development processes                                      |
+| `pilot -b <name> stop`              | Stop development processes                                       |
+| `pilot -b <name> get-app <repo>`    | Clone and install an app                                         |
+| `pilot -b <name> new-site <site>`   | Create a site                                                    |
+| `pilot -b <name> setup production`  | Configure process manager, nginx, Admin domain, and optional TLS |
+| `pilot -b <name> restart`           | Restart production processes                                     |
+| `pilot -b <name> remove production` | Remove production deployment files and services                  |
 
 For the full command list, see [Commands](docs/commands.md).
 

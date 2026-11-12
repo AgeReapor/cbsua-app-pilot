@@ -11,7 +11,7 @@ set -e
 # ── configuration ─────────────────────────────────────────────────────────────
 # All three point at the same GitHub repo; override PILOT_GITHUB_SLUG to install
 # from a fork (releases + self-reference URL follow it).
-GITHUB_SLUG="${PILOT_GITHUB_SLUG:-frappe/pilot}"
+GITHUB_SLUG="${PILOT_GITHUB_SLUG:-AgeReapor/cbsua-app-pilot}"
 INSTALL_URL="https://raw.githubusercontent.com/$GITHUB_SLUG/develop/install.sh"
 REPO_URL="${PILOT_REPO_URL:-https://github.com/$GITHUB_SLUG}"
 BRANCH_NAME="${PILOT_BRANCH:-develop}"
