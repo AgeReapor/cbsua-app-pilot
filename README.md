@@ -145,6 +145,64 @@ Long-running Admin operations return task IDs. Task progress, logs, callbacks, a
 
 See [Admin UI](docs/admin-ui.md) and [Admin API](docs/admin-api.md).
 
+## CBSUA Helpdesk local development
+
+This fork is also used to manage a local development bench for the CBSUA Helpdesk
+stack. The Pilot repository contains the bench manager; each actual bench has its own
+`bench.toml` and site data outside this repository.
+
+Create a development bench and start its setup wizard:
+
+```bash
+pilot new cbsua-helpdesk
+pilot -b cbsua-helpdesk start
+```
+
+In the wizard, configure the CBSUA Frappe fork as the framework source:
+
+- Repository: `https://github.com/AgeReapor/cbsua-app-frappe`
+- Branch: `develop`
+
+After the bench is initialized, add the dependent apps in dependency order:
+
+```bash
+pilot -b cbsua-helpdesk get-app https://github.com/AgeReapor/cbsua-app-telephony --branch develop
+pilot -b cbsua-helpdesk get-app https://github.com/AgeReapor/cbsua-app-helpdesk --branch develop
+```
+
+Create a site and install both apps:
+
+```bash
+pilot -b cbsua-helpdesk new-site localhost
+pilot -b cbsua-helpdesk install-app localhost telephony helpdesk
+```
+
+Use a site name and host mapping appropriate to your workstation. The first app in
+`bench.toml` must be Frappe. Keep the framework and app branches on compatible
+development lines; install Telephony before Helpdesk because Helpdesk depends on it.
+
+Helpdesk article and knowledge-base search requires Redis with the RediSearch module
+available to the bench's cache Redis. The hosted Docker stack supplies this through
+Redis Stack. A local Pilot-managed bench must provide the equivalent module in its
+Redis cache service.
+
+### Updating the local development bench
+
+Before pulling newer fork changes:
+
+1. Record the current commit SHA of Frappe, Telephony, and Helpdesk in the bench.
+2. Check the target branches and their compatibility metadata before updating.
+3. Back up the site's database and public/private files.
+4. Update Frappe first, then Telephony, then Helpdesk; run the bench's required
+   migrations and rebuild assets.
+5. Verify Desk, the Helpdesk agent and customer portals, realtime updates, background
+   jobs, attachments, and article search.
+
+Do not use the Pilot project repository as a substitute for the actual bench's
+`bench.toml` or installed source SHAs. Keep environment-specific configuration and
+secrets out of Git. For the deployment image workflow and the separate local Docker
+workflow plan, see the [CBSUA Helpdesk deployment repository](https://github.com/AgeReapor/cbsua-app-helpdesk-deployment).
+
 ## Guides
 
 - [Architecture](docs/architecture.md)
