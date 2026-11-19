@@ -1,286 +1,81 @@
-<p align="center">
-  <img src=".github/assets/pilot-logo.svg" alt="Pilot" height="72">
-</p>
+# CBSUA Pilot
 
-<h1 align="center">Pilot</h1>
+CBSUA-maintained fork of [Frappe Pilot](https://github.com/frappe/pilot), used for **local prototyping and development** of CBSUA Frappe applications. Pilot provides bench/site lifecycle management and an Admin UI; it is a developer environment manager, not the production deployment orchestrator for CBSUA Helpdesk.
 
-<p align="center">
-  <strong>Manage Frappe benches and sites on any server</strong>
-</p>
+## Intended use
 
-<p align="center">
-  <img src="https://img.shields.io/badge/python-%3E=_3.11-green.svg" alt="Python >= 3.11">
-  <a href="https://github.com/frappe/pilot/actions/workflows/unit-tests.yml">
-    <img src="https://github.com/frappe/pilot/actions/workflows/unit-tests.yml/badge.svg" alt="Tests">
-  </a>
-  <img src="https://img.shields.io/badge/platform-linux%20%7C%20macos-blue" alt="Platform: Linux and macOS">
-</p>
+Use this repository to create and manage local benches, initialize sites, fetch CBSUA app forks, build frontend assets, and inspect/manage the local environment through Pilot's Admin UI.
 
-Pilot makes it simple to run Frappe on your own servers. Use the Admin UI to manage apps, sites, processes, backups, domains, and production setup, with a CLI for automation.
-
-![Apps](.github/assets/pilot.png)
-
-## Key Features
-
-- Bench and site lifecycle: create, update, rename, restore, back up, and drop
-- Integrated marketplace to install apps on sites from Git repositories or the app registry
-- Local development runner for Redis, web, workers, socket.io, and Admin UI
-- Production setup for process managers, nginx, monitoring, domains, and TLS
-- Devtools for investigation: system console (Python and SQL), database analyzer, binlog browser, logs, and task history
-
-## Requirements
-
-- Debian 12+, Ubuntu 24.04+, Fedora 43+, Arch Linux, or macOS with Homebrew for local development. The installer refuses older releases.
-- Python 3.11+ on the host to run the `pilot` CLI. Benches get their own Python 3.14 through `uv`.
-- Node.js 24
-- Frappe v16 or later
+The production Helpdesk image and runtime are managed separately by [cbsua-app-helpdesk-deployment](https://github.com/AgeReapor/cbsua-app-helpdesk-deployment), using reusable container definitions from [cbsua-app-frappe-docker](https://github.com/AgeReapor/cbsua-app-frappe-docker). A Pilot-managed bench is not automatically identical to the production container image; record and compare exact app commits and runtime versions before promoting changes.
 
 ## Installation
 
-Run the installer as your normal user:
+This fork retains Pilot's installer and command-line workflow. For a source-based development checkout, consult the install script and requirements in this repository. Do not assume upstream Pilot's latest requirements are compatible with every historical CBSUA bench.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/AgeReapor/cbsua-app-pilot/develop/install.sh | bash
-```
+## CBSUA local workflow
 
-On a root-only VPS, run it as root; the installer creates a non-root bench user.
-
-This installs the latest release (prebuilt admin UI, no build step). Contributors
-who want a source checkout that compiles the admin UI locally can pass `--dev`:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/AgeReapor/cbsua-app-pilot/develop/install.sh | bash -s -- --dev
-```
-
-## Basic Usage
-
-Create a bench and launch the setup wizard:
+The following sequence reflects the project's local prototyping workflow. Pilot may prompt for runtime/database initialization and site setup; complete those steps before installing apps.
 
 ```bash
 pilot new cbsua-app-bench
 pilot -b cbsua-app-bench start
 ```
 
-The first `start` will print the url to access the admin wizard. The wizard asks for the Admin password, database settings, and Frappe source settings, then initializes the bench with live task progress.
+Open the Admin UI at the local URL printed by Pilot. The project has used:
 
-Common commands:
-
-| Command                             | Purpose                                                          |
-| ----------------------------------- | ---------------------------------------------------------------- |
-| `pilot new <name>`                  | Create a bench and `bench.toml`                                  |
-| `pilot ls`                          | List benches, status, production state, and Admin URL            |
-| `pilot -b <name> init`              | Initialize a bench from `bench.toml`                             |
-| `pilot -b <name> start`             | Start development processes                                      |
-| `pilot -b <name> stop`              | Stop development processes                                       |
-| `pilot -b <name> get-app <repo>`    | Clone and install an app                                         |
-| `pilot -b <name> new-site <site>`   | Create a site                                                    |
-| `pilot -b <name> setup production`  | Configure process manager, nginx, Admin domain, and optional TLS |
-| `pilot -b <name> restart`           | Restart production processes                                     |
-| `pilot -b <name> remove production` | Remove production deployment files and services                  |
-
-For the full command list, see [Commands](docs/commands.md).
-
-## Configuration
-
-Each bench has one `bench.toml`. It is the source of truth for apps, database, Redis, workers, production, nginx, gunicorn, Let's Encrypt, Admin, firewall, WAF, S3, and monitoring settings.
-
-Minimal shape:
-
-```toml
-[bench]
-name = "main"
-python = "3.11"
-
-[[apps]]
-name = "frappe"
-repo = "https://github.com/frappe/frappe"
-branch = "version-16"
-
-[mariadb]
-host = "localhost"
-port = 3306
-root_password = "your-root-password"
-
-[redis]
-cache_port = 13000
-queue_port = 11000
-
-[[workers]]
-queues = ["default", "short", "long"]
-count = 1
-
-[admin]
-port = 8002
-password = "your-admin-password"
-domain = ""
-tls = false
+```text
+http://[::1]:7000/sites
 ```
 
-Apps and sites also exist on disk under the bench. See [Configuration](docs/configuration.md) for every config section.
-
-## Production
-
-Production setup writes process-manager config, nginx integration, Admin routing, monitoring config, and optional Let's Encrypt certificates.
+Fetch the CBSUA application repositories:
 
 ```bash
-pilot -b main setup production --admin-domain admin.example.com
-pilot -b main setup production --admin-domain admin.example.com --tls --letsencrypt-email ops@example.com
+pilot get-app https://github.com/AgeReapor/cbsua-app-telephony
+pilot get-app https://github.com/AgeReapor/cbsua-app-helpdesk
 ```
 
-The Admin domain is required in production. Set `admin.tls = false` when HTTPS terminates at an upstream proxy.
-
-Supported process managers:
-
-- `systemd`
-- `supervisor`
-- `none` for local development
-
-See [Production](docs/production.md).
-
-## Admin UI
-
-The Admin UI runs on `[admin] port`, usually `8002`. It exposes bench status, apps, marketplace installs, sites, backups, domains, processes, logs, tasks, database tools, updates, and settings.
-
-Long-running Admin operations return task IDs. Task progress, logs, callbacks, and final status are handled by `pilot.tasks`.
-
-See [Admin UI](docs/admin-ui.md) and [Admin API](docs/admin-api.md).
-
-## CBSUA Helpdesk local development
-
-This fork is also used to manage a local development bench for the CBSUA Helpdesk
-stack. The Pilot repository contains the bench manager; each actual bench has its own
-`bench.toml` and site data outside this repository.
-
-Create a development bench and start its setup wizard:
+Install Telephony before Helpdesk because Helpdesk declares it as a dependency:
 
 ```bash
-pilot new cbsua-helpdesk
-pilot -b cbsua-helpdesk start
+pilot --site cbsua-helpdesk.localhost install-app telephony
+pilot --site cbsua-helpdesk.localhost install-app helpdesk
 ```
 
-In the wizard, configure the CBSUA Frappe fork as the framework source:
-
-- Repository: `https://github.com/AgeReapor/cbsua-app-frappe`
-- Branch: `develop`
-
-After the bench is initialized, add the dependent apps in dependency order:
+Build the Helpdesk frontend assets:
 
 ```bash
-pilot -b cbsua-helpdesk get-app https://github.com/AgeReapor/cbsua-app-telephony --branch develop
-pilot -b cbsua-helpdesk get-app https://github.com/AgeReapor/cbsua-app-helpdesk --branch develop
+pilot build --app helpdesk
 ```
 
-Create a site and install both apps:
+The commands assume that a compatible CBSUA Frappe bench and the target site already exist. The site name shown is an example used by the project; substitute the actual local site name when necessary. Use the deployment repository's source lock as the reference when aligning local and image builds.
 
-```bash
-pilot -b cbsua-helpdesk new-site localhost
-pilot -b cbsua-helpdesk install-app localhost telephony helpdesk
-```
+## Common workflow
 
-Use a site name and host mapping appropriate to your workstation. The first app in
-`bench.toml` must be Frappe. Keep the framework and app branches on compatible
-development lines; install Telephony before Helpdesk because Helpdesk depends on it.
+| Task | Pilot command |
+|---|---|
+| Create a bench | `pilot new <bench-name>` |
+| Start a bench / Admin UI | `pilot -b <bench-name> start` |
+| Fetch an app | `pilot get-app <repository-url>` |
+| Install an app on a site | `pilot --site <site-name> install-app <app-name>` |
+| Build app assets | `pilot build --app <app-name>` |
 
-Helpdesk article and knowledge-base search requires Redis with the RediSearch module
-available to the bench's cache Redis. The hosted Docker stack supplies this through
-Redis Stack. A local Pilot-managed bench must provide the equivalent module in its
-Redis cache service.
+Consult `pilot --help` and the current command help for additional options. CLI flags and supported runtimes can change between fork revisions.
 
-### Updating the local development bench
+## Development notes
 
-Before pulling newer fork changes:
+- Use a separate local bench/site for experiments; avoid mixing unrelated branches in one environment.
+- Keep a record of framework, app, Python, Node, MariaDB, and Redis versions when reporting a reproducibility issue.
+- Do not place production credentials or real institutional data in a prototype site.
+- Before validating a release, compare local app commit SHAs with the intended deployment source lock.
+- Pilot's Admin UI is a local development convenience; it is not a public-facing CBSUA Helpdesk administration portal.
 
-1. Record the current commit SHA of Frappe, Telephony, and Helpdesk in the bench.
-2. Check the target branches and their compatibility metadata before updating.
-3. Back up the site's database and public/private files.
-4. Update Frappe first, then Telephony, then Helpdesk; run the bench's required
-   migrations and rebuild assets.
-5. Verify Desk, the Helpdesk agent and customer portals, realtime updates, background
-   jobs, attachments, and article search.
+## Relationship to other repositories
 
-Do not use the Pilot project repository as a substitute for the actual bench's
-`bench.toml` or installed source SHAs. Keep environment-specific configuration and
-secrets out of Git. For the deployment image workflow and the separate local Docker
-workflow plan, see the [CBSUA Helpdesk deployment repository](https://github.com/AgeReapor/cbsua-app-helpdesk-deployment).
+- [cbsua-app-frappe](https://github.com/AgeReapor/cbsua-app-frappe) — framework runtime.
+- [cbsua-app-telephony](https://github.com/AgeReapor/cbsua-app-telephony) — Helpdesk dependency.
+- [cbsua-app-helpdesk](https://github.com/AgeReapor/cbsua-app-helpdesk) — ticketing application.
+- [cbsua-app-helpdesk-deployment](https://github.com/AgeReapor/cbsua-app-helpdesk-deployment) — authoritative image/release/deployment documentation.
 
-## Guides
+## Upstream relationship and license
 
-- [Architecture](docs/architecture.md)
-- [Commands](docs/commands.md)
-- [Configuration](docs/configuration.md)
-- [App Dependencies](docs/app-dependencies.md)
-- [App Processes](docs/app-processes.md)
-- [Tasks](docs/tasks.md)
-- [Admin API](docs/admin-api.md)
-- [Admin UI](docs/admin-ui.md)
-- [Production](docs/production.md)
-- [Domain Provider](docs/domain-provider.md)
-
-## Development
-
-<details>
-<summary>Development setup and checks</summary>
-
-Use a source checkout when working on Pilot:
-
-```bash
-git clone https://github.com/frappe/pilot ~/pilot
-cd ~/pilot
-export PATH="$PWD/bin:$PATH"
-```
-
-Create a development bench:
-
-```bash
-pilot new dev
-pilot -b dev start
-```
-
-Useful development toggles in `bench.toml`:
-
-```toml
-[bench]
-watch_apps_js = true
-reload_python = true
-watch_admin_js = true
-```
-
-Run checks:
-
-```bash
-uv run ruff check admin pilot tests
-uv run pytest tests/ --ignore=tests/integration
-```
-
-Integration tests under `tests/integration/` use real services and run the full bench lifecycle.
-
-</details>
-
-## Community
-
-- [Frappe Forum](https://discuss.frappe.io/)
-- [Frappe Framework Docs](https://frappeframework.com/docs)
-- [Frappe YouTube](https://www.youtube.com/@frappetech)
-
-## Contributing
-
-Keep CLI commands and Admin API routes thin. Put behavior on the closest core object: `Server`, `Bench`, `Site`, `App`, or a task.
-
-Read [SPEC.md](SPEC.md), [Architecture](docs/architecture.md), and [Commands](docs/commands.md) before changing behavior.
-
-## Security
-
-The Frappe team and community prioritize security. If you discover a security issue, please report it via our [Security Report Form](https://frappe.io/security).
-Your responsible disclosure helps keep Frappe and its users safe. We'll do our best to respond quickly and keep you informed throughout the process.
-For guidelines on reporting, check out our [Reporting Guidelines](https://frappe.io/security), and review our [Logo and Trademark Policy](https://github.com/frappe/erpnext/blob/develop/TRADEMARK_POLICY.md) for branding information.
-
-<br/><br/>
-
-<div align="center">
-	<a href="https://frappe.io" target="_blank">
-		<picture>
-			<source media="(prefers-color-scheme: dark)" srcset="https://frappe.io/files/Frappe-white.png">
-			<img src="https://frappe.io/files/Frappe-black.png" alt="Frappe Technologies" height="28"/>
-		</picture>
-	</a>
-</div>
+This is a fork of Pilot. Preserve upstream attribution and licensing. Keep CBSUA-specific changes documented and periodically compare with upstream Pilot.
